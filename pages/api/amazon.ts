@@ -1,7 +1,14 @@
 import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '@/utils/app/const';
+import { OpenAIModels } from '@/types/openai';
+// add AMZN models
+import { AmznModel, AmznModelID, AmznModels } from '@/types/amazon';
+import { AMZN_API_HOST } from '@/utils/app/const';
+// mock host
+const MOCK_API_HOST = 'http://localhost:3000/api/mock';
 
-import { OpenAIModel, OpenAIModelID, OpenAIModels } from '@/types/openai';
 
+// select the API to use
+const API_HOST = MOCK_API_HOST;
 export const config = {
   runtime: 'edge',
 };
@@ -12,7 +19,7 @@ const handler = async (req: Request): Promise<Response> => {
       key: string;
     };
 
-    let url = `${OPENAI_API_HOST}/v1/models`;
+    let url = `${API_HOST}/v1/models`;
     if (OPENAI_API_TYPE === 'azure') {
       url = `${OPENAI_API_HOST}/openai/deployments?api-version=${OPENAI_API_VERSION}`;
     }
@@ -51,19 +58,34 @@ const handler = async (req: Request): Promise<Response> => {
     // AMZN Models
     const models: AmznModel[] = json.data
       .map((model: any) => {
-        const model_name = (OPENAI_API_TYPE === 'azure') ? model.model : model.id;
-        for (const [key, value] of Object.entries(OpenAIModelID)) {
-          if (value === model_name) {
+        for (const [key, value] of Object.entries(AmznModelID)) {
+          if (value === model.id) {
             return {
               id: model.id,
-              name: AmznModels[value].name,
+              name:AmznModels[value].name,
             };
+            }
           }
-        }
-      })
+        })
       .filter(Boolean);
-
     return new Response(JSON.stringify(models), { status: 200 });
+
+    // TODO: append OpenAI models to AMZN models -- UNREACHABLE CODE
+    // const models: OpenAIModel[] = json.data
+    // .map((model: any) => {
+    //   const model_name = (OPENAI_API_TYPE === 'azure') ? model.model : model.id;
+    //   for (const [key, value] of Object.entries(OpenAIModelID)) {
+    //     if (value === model_name) {
+    //       return {
+    //         id: model.id,
+    //         name: OpenAIModels[value].name,
+    //       };
+    //     }
+    //   }
+    // })
+    // .filter(Boolean);
+
+    // return new Response(JSON.stringify(models), { status: 200 });
   } catch (error) {
     console.error(error);
     return new Response('Error', { status: 500 });
