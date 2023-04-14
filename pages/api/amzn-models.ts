@@ -1,14 +1,20 @@
-import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '@/utils/app/const';
-import { OpenAIModels } from '@/types/openai';
+// import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '@/utils/app/const';
+// import { OpenAIModels } from '@/types/openai';
 // add AMZN models
 import { AmznModel, AmznModelID, AmznModels } from '@/types/amazon';
-import { AMZN_API_HOST } from '@/utils/app/const';
 // mock host
 const MOCK_API_HOST = 'http://localhost:3000/api/mock';
+// dev endpoint
+const DEV_API_HOST = 'https://kx9lyhxrs8.execute-api.us-west-2.amazonaws.com/dev';
 
 
 // select the API to use
-const API_HOST = MOCK_API_HOST;
+const API_HOST = DEV_API_HOST;
+// let api_type = OPENAI_API_TYPE;
+// override for api_type for amazon
+const api_type = 'amazon';
+
+
 export const config = {
   runtime: 'edge',
 };
@@ -20,22 +26,12 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     let url = `${API_HOST}/v1/models`;
-    if (OPENAI_API_TYPE === 'azure') {
-      url = `${OPENAI_API_HOST}/openai/deployments?api-version=${OPENAI_API_VERSION}`;
-    }
 
     const response = await fetch(url, {
       headers: {
-        'Content-Type': 'application/json',
-        ...(OPENAI_API_TYPE === 'openai' && {
-          Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
-        }),
-        ...(OPENAI_API_TYPE === 'azure' && {
-          'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
-        }),
-        ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
-          'OpenAI-Organization': OPENAI_ORGANIZATION,
-        }),
+        ...(api_type === 'amazon' && { 
+          'x-api-key': `${key ? key : process.env.AMAZON_API_KEY}`
+      }),
       },
     });
 
@@ -69,23 +65,6 @@ const handler = async (req: Request): Promise<Response> => {
         })
       .filter(Boolean);
     return new Response(JSON.stringify(models), { status: 200 });
-
-    // TODO: append OpenAI models to AMZN models -- UNREACHABLE CODE
-    // const models: OpenAIModel[] = json.data
-    // .map((model: any) => {
-    //   const model_name = (OPENAI_API_TYPE === 'azure') ? model.model : model.id;
-    //   for (const [key, value] of Object.entries(OpenAIModelID)) {
-    //     if (value === model_name) {
-    //       return {
-    //         id: model.id,
-    //         name: OpenAIModels[value].name,
-    //       };
-    //     }
-    //   }
-    // })
-    // .filter(Boolean);
-
-    // return new Response(JSON.stringify(models), { status: 200 });
   } catch (error) {
     console.error(error);
     return new Response('Error', { status: 500 });
